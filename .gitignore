@@ -1,0 +1,31 @@
+# Datos: no se suben a GitHub (se comparten entre PCs con Syncthing)
+*.xlsx
+*.xls
+*.csv
+*.pkl
+*.jsonl
+*.pdf
+*.log
+fuentes/
+entregables/
+**/datos/
+**/pdfs*/
+
+# Temporales de Excel/Office
+~$*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Syncthing
+.stfolder/
+.stignore
+.stversions/
