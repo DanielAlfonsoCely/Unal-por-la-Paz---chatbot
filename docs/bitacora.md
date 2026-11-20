@@ -18,6 +18,7 @@ Registro de lo que se ha hecho, en orden. Cada vez que se haga un commit con alg
   - Basta con que un código del documento pase. Se quitan tipos que no son texto (audio, imágenes, partituras…).
   - Rescate por palabras fuertes en título/resumen (reforma agraria, restitución, baldío, campesino, despojo, PDET, Ley 1448…).
 - Resultado con 2011–2021: 21.486 → **8.837 candidatos**. Sin filtro de años (`--sin-anios`): **16.132**.
+- `armar_excel_filtrados.py` arma el Excel de los candidatos para la coordinación (Resumen, Gráficas, Documentos, Cómo se filtró) y `quitar_descartados_excel.py` le quita a las gráficas los códigos Dewey descartados.
 - `coocurrencia_dewey.py` ayudó a decidir las reglas condicionales (qué códigos van solos y con cuáles se acompañan).
 
 ## Octubre 2026 — Peso de los archivos
@@ -29,7 +30,7 @@ Registro de lo que se ha hecho, en orden. Cada vez que se haga un commit con alg
 - Prueba en la torre (RX 9060 XT 16 GB): Dify + Ollama con 23 libros del Informe Final de la Comisión de la Verdad (`04_prueba_local_comision_verdad/pdfs_comision_verdad/`).
 - Configuración: gemma4:12b con think apagado (proxy propio), embeddings bge-m3, búsqueda vectorial, Top K 6, chunks de 2048 con overlap 256.
 - Concurrencia: con 5 preguntas a la vez ~30 s de mediana; con 10 pasa de 1 min. Sirvió como prueba de que un modelo local es viable, no como prototipo.
-- Pendiente de traer a esta carpeta: `proxy_nothink.py` y `prueba_concurrencia_*.py` (están en el Project).
+- Scripts: `proxy_nothink.py` (proxy que apaga el think de gemma4) y `prueba_concurrencia_ollama.py` / `prueba_concurrencia_dify.py` (N usuarios a la vez, directo a Ollama o pasando por Dify).
 
 ## Octubre–noviembre 2026 — Cruce con las bases legado
 
