@@ -65,3 +65,16 @@ Registro de lo que se ha hecho, en orden. Cada vez que se haga un commit con alg
 - Quedan fuera 7 ítems: 4 restringidos (401 en la medición del 5-oct: 77684, 77719, 77889, 80285), 2 solo EPUB (77814, 81737) y 1 sin archivo (79199). Se incluyen 2 con extensión rara (53991, 79948); se confirman por la cabecera `%PDF`.
 - `07_prototipo_dify/descargar_pdfs.py` (corre en el Nodo 10, dentro de tmux): descarga a `.part`, verifica `%PDF`, tamaño y md5, y recién ahí renombra. Reanudable; registra fallos en `resultados_descarga.csv`. Opciones `--prueba`, `--limite`, `--hilos`.
 - Decisión: los PDFs viven solo en el Nodo 10, fuera de lo que se sincroniza (`.stignore` del Nodo 10).
+
+## 21 nov 2026 — Dify en el Nodo 10, base de conocimiento y primeras pruebas
+
+- Dify 1.16.1 en el Nodo 10 (`~/dify`), conectado a Ollama (gemma4:31b-it-qat y bge-m3) con `host.docker.internal` (override `extra_hosts` para `api` y `plugin_daemon`; Ollama escucha en `0.0.0.0`). Plugin de Ollama instalado desde archivo `.difypkg` (el Marketplace no respondía). Límites de subida: `UPLOAD_FILE_SIZE_LIMIT=200` y `NGINX_CLIENT_MAX_BODY_SIZE=250M` (22 PDFs pasaban de 15 MB; el mayor, 148 MB).
+- `07_prototipo_dify/subir_a_dify.py`: crea (o reutiliza) la base "Prototipo paz INCLUIR 2011-2021" por la API de conocimiento y sube los 598 PDFs con máximo 6 indexándose a la vez. Reanudable (`estado_subida.csv`). Opciones `--prueba`, `--limite`, `--cola`, `--solo-estado`, `--reintentar`.
+  - Config: búsqueda **híbrida 0.7 vectorial / 0.3 palabras clave**, sin reranker, Top K 6, fragmentos de 2048 con solapamiento 256, bge-m3.
+  - Metadata por documento (13 campos, desde la DB): título, autor, director, año, tipo, nivel, sede, facultad, colección, dewey, temas, link e id del repositorio. Grupo y línea de investigación quedaron fuera por datos incompletos.
+  - Algunos documentos fallaron al indexar por agotamiento del pool de conexiones de Dify mientras se usaba el chat al mismo tiempo. Se reintentan con `--reintentar`. Regla: no usar el chat mientras se indexa.
+- Dos apps Chatbot sobre la misma base: concisa y analítica (prompts en `07_prototipo_dify/prompts_apps_dify.md`), gemma4:31b con razonamiento encendido.
+  - El filtrado automático por metadata dejaba el contexto vacío en el link público: queda desactivado. Filtros elegidos por el usuario (botones) = idea a futuro con un Chatflow.
+  - Primera prueba: respondió solo con el contexto y citó bien, pero tardó ~100 s (≈70 s razonando). Los fragmentos traen enlaces de imágenes del PDF que ensucian el texto.
+- `07_prototipo_dify/probar_apps.py`: batería de 12 preguntas contra las dos apps por API, una a la vez; guarda respuesta, razonamiento, tiempos y fragmentos recuperados en `datos/pruebas_apps_<etiqueta>.jsonl` y `.csv`, para comparar con y sin razonamiento.
+- Pendiente: correr la batería (con y sin razonamiento), confirmar los 598 documentos disponibles, ngrok en el Nodo 10 y compartir con la coordinación.
