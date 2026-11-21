@@ -57,3 +57,11 @@ Registro de lo que se ha hecho, en orden. Cada vez que se haga un commit con alg
 ## 19 nov 2026 — Orden del repositorio
 
 - Se ordenó la carpeta por etapas y se empezó a usar git solo para código y documentación (`.gitignore` ignora Excels, CSV, PDFs y carpetas de datos). Los datos se sincronizan entre equipos con Syncthing.
+
+## 20 nov 2026 — Descarga de PDFs y acceso desde la torre
+
+- Acceso SSH desde la torre Windows al Nodo 10 (Tailscale + llave `dani_ssh_torre`, alias `nodo10`).
+- `07_prototipo_dify/armar_manifiesto.py`: cruza la DB de los 575 INCLUIR con `03_medicion_pesos/datos/pesos_archivos.csv` (que ya trae URL de descarga, tamaño y md5) y arma `datos/manifiesto_descarga.csv`: 598 archivos de 568 ítems, ~2,57 GB. Nombre destino "Título (año).pdf"; varios PDF por ítem → " - parte N"; choques entre ítems → " [unal-ID]".
+- Quedan fuera 7 ítems: 4 restringidos (401 en la medición del 5-oct: 77684, 77719, 77889, 80285), 2 solo EPUB (77814, 81737) y 1 sin archivo (79199). Se incluyen 2 con extensión rara (53991, 79948); se confirman por la cabecera `%PDF`.
+- `07_prototipo_dify/descargar_pdfs.py` (corre en el Nodo 10, dentro de tmux): descarga a `.part`, verifica `%PDF`, tamaño y md5, y recién ahí renombra. Reanudable; registra fallos en `resultados_descarga.csv`. Opciones `--prueba`, `--limite`, `--hilos`.
+- Decisión: los PDFs viven solo en el Nodo 10, fuera de lo que se sincroniza (`.stignore` del Nodo 10).
