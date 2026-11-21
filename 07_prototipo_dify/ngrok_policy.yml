@@ -1,0 +1,20 @@
+# Traffic Policy de ngrok para el prototipo (Nodo 10).
+# Deja pasar solo lo que necesita el chat público de Dify (/chat/<código>, /api/, /_next/, /files/...)
+# y responde 403 a la consola, el login, la instalación y la API de servicio (/v1).
+# Uso:
+#   ngrok http 80 --url https://sequester-composite-pretender.ngrok-free.dev \
+#     --traffic-policy-file ~/Unal-por-la-Paz---chatbot/07_prototipo_dify/ngrok_policy.yml
+on_http_request:
+  - name: bloquear consola, login y API
+    expressions:
+      - >-
+        req.url.path == '/' ||
+        req.url.path.matches('^/(signin|install|init|apps|app|datasets|explore|tools|plugins|account|reset-password|forgot-password|activate|oauth-callback|education-apply|v1)(/|$)') ||
+        (req.url.path.startsWith('/console/api') && req.url.path != '/console/api/system-features')
+    actions:
+      - type: custom-response
+        config:
+          status_code: 403
+          headers:
+            content-type: text/plain; charset=utf-8
+          body: "Acceso no permitido. Para usar el asistente abre el enlace del chat que te compartieron."
