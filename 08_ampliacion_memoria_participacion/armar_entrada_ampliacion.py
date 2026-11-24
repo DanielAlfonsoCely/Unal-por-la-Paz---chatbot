@@ -8,7 +8,7 @@ Arma UNA sola entrada (entrada_repo.csv y entrada_bases.csv) para clasificar_ia.
 - Cada fila lleva la columna "Fuente". Si un documento está en varias fuentes se deja UNA fila y la Fuente
   las nombra todas ("Repositorio UNAL; Base William Mancera").
 - Salen DOS archivos, para clasificarlos por separado (las bases de Natalia van de últimas y son opcionales):
-    entrada_repo.csv   → repositorio, en este orden: 1) pasa Dewey  2) resto  (clasificar_ia.py respeta el orden)
+    entrada_repo.csv   → repositorio: 1) sociales/humanas/artes  2) otras que pasan Dewey  3) resto (se clasifica en ese orden)
     entrada_bases.csv  → solo lo de las bases que NO está ya en el repositorio, con columna "Observaciones"
                          (sin enlace, tipo no académico, posible duplicado de un documento del repositorio).
 - Duplicados bases↔repositorio: por handle del enlace, por título exacto y por título parecido (como en
@@ -28,12 +28,18 @@ from collections import Counter
 import pandas as pd
 
 ANIO_MIN, ANIO_MAX = 2011, 2021
+# Natalia: estos temas se trabajan sobre todo desde ciencias sociales, humanas y artes → esas facultades van primero.
+# También las colecciones generales (libros, editorial, BDF feminista, proyectos temáticos, colecciones de sede).
+PRIORIDAD_COMM1 = re.compile(r"ciencias humanas|artes|ciencias econ|derecho|unijus|arquitectura$|^facultad de arquitectura|"
+                             r"administraci[oó]n$|feminista|libros y cap|editorial|proyectos tem|^sede |^unal$|^general$", re.I)
 TIPOS_EXCLUIDOS = {"audio", "partitura", "simulacion", "imagenes", "grabacion sonora", "presentacion",
                    "objeto de aprendizaje"}   # los mismos que filtro_dewey.py
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--reporte", required=True)
 ap.add_argument("--candidatos", required=True, help="candidatos_todos_anios.csv (para marcar quién pasa Dewey)")
+ap.add_argument("--excluir", default=None,
+                help="total_g31.xlsx de reforma agraria: sus INCLUIR y POSIBLE no se vuelven a clasificar (ya van al corpus)")
 ap.add_argument("--william", default=None)
 ap.add_argument("--legado", default=None)
 ap.add_argument("--base-final", default=None)
@@ -92,10 +98,18 @@ c_ab, c_ti_tipo = col(rep, "Abstract"), col(rep, "Tipo")
 c_fe = col(rep, "fecha del documento")
 c_au = col(rep, "Autor", obligatoria=False)
 c_su = col(rep, "subject", obligatoria=False)
+c_c1 = col(rep, "comm_1", obligatoria=False)
 rep["_anio"] = rep[c_fe].map(anio)
 rep = rep[rep["_anio"].between(ANIO_MIN, ANIO_MAX)]
 n_rango = len(rep)
 rep = rep[~rep[c_ti_tipo].fillna("").map(lambda t: unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode().strip().lower()).isin(TIPOS_EXCLUIDOS)]
+ya = set()
+if args.excluir:
+    ag = pd.read_excel(args.excluir, sheet_name="Resultados", dtype=str)
+    ya = set(ag.loc[ag["Decisión IA"].isin(["INCLUIR", "POSIBLE"]), "ID"].map(handle).dropna())
+    antes = len(rep)
+    rep = rep[~rep[c_h].map(handle).isin(ya)]
+    log.append(f"Quitados por ser INCLUIR/POSIBLE de reforma agraria (ya van al corpus): {antes - len(rep)}")
 cand = pd.read_csv(args.candidatos, dtype=str, encoding="utf-8-sig")
 pasa = set(cand["handle"].map(handle).dropna())
 log.append(f"Repositorio {ANIO_MIN}-{ANIO_MAX}: {n_rango} filas; sin los tipos no-texto: {len(rep)}; "
@@ -105,7 +119,8 @@ for _, r in rep.iterrows():
     h = handle(r[c_h])
     if not h:
         continue
-    f = {"ID": "REPO-" + h, "Fuente": "Repositorio UNAL", "Grupo": 2 if h in pasa else 3,
+    social = bool(c_c1 and PRIORIDAD_COMM1.search(limpio(r[c_c1])))
+    f = {"ID": "REPO-" + h, "Fuente": "Repositorio UNAL", "Grupo": 1 if social else (2 if h in pasa else 3),
          "Título": limpio(r[c_ti]), "Autor": limpio(r[c_au]) if c_au else "", "Año": int(r["_anio"]),
          "Tipo": limpio(r[c_ti_tipo]), "Link": f"https://repositorio.unal.edu.co/handle/{h}",
          "Resumen": armar_resumen(r[c_ab], [("Palabras clave", r[c_su] if c_su else "")])}
@@ -235,7 +250,8 @@ if args.legado:
 if args.base_final:
     agregar_base("Base final 2010-2021", "BF", leer_base_final(args.base_final))
 
-GRUPOS = {2: "1 Repositorio (pasa Dewey)", 3: "2 Repositorio (resto)", 4: "3 Bases de Natalia"}
+GRUPOS = {1: "1 Repositorio (sociales, humanas, artes)", 2: "2 Repositorio (otras facultades, pasa Dewey)",
+          3: "3 Repositorio (resto)", 4: "4 Bases de Natalia"}
 COLS = ["ID", "Grupo", "Fuente", "Título", "Autor", "Año", "Tipo", "Link", "Resumen"]
 repo = pd.DataFrame(filas).sort_values("Grupo", kind="stable")
 repo["Grupo"] = repo["Grupo"].map(GRUPOS)
@@ -252,6 +268,9 @@ if filas_bases:
     for o in ["Posible duplicado", "Sin enlace", "Tipo no académico"]:
         log.append(f"  con '{o}': {b['Observaciones'].str.contains(o).sum()}")
     log.append(f"  sin ninguna observación: {(b['Observaciones'] == '').sum()}")
+    ce = b[b["Link"].str.startswith("http")]
+    ce[COLS + ["Observaciones"]].to_csv("entrada_bases_con_enlace.csv", index=False, encoding="utf-8-sig")
+    log.append(f"entrada_bases_con_enlace.csv: {len(ce)} (solo las que tienen enlace a un documento)")
 texto = "\n".join(log)
 print(texto)
 open("resumen_entrada.txt", "w", encoding="utf-8").write(texto + "\n")
