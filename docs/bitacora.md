@@ -78,3 +78,14 @@ Registro de lo que se ha hecho, en orden. Cada vez que se haga un commit con alg
   - Primera prueba: respondió solo con el contexto y citó bien, pero tardó ~100 s (≈70 s razonando). Los fragmentos traen enlaces de imágenes del PDF que ensucian el texto.
 - `07_prototipo_dify/probar_apps.py`: batería de 12 preguntas contra las dos apps por API, una a la vez; guarda respuesta, razonamiento, tiempos y fragmentos recuperados en `datos/pruebas_apps_<etiqueta>.jsonl` y `.csv`, para comparar con y sin razonamiento.
 - Pendiente: correr la batería (con y sin razonamiento), confirmar los 598 documentos disponibles, ngrok en el Nodo 10 y compartir con la coordinación.
+
+## 24 nov 2026 — Reunión con la coordinación, ampliación del corpus y plan para la demo
+
+- Reunión (Jairo, Natalia, Daniela): el corpus actual (575 documentos) se queda corto; la versión concisa no convenció (se usa la analítica); cuando no hay respuesta igual se mostraban los 6 fragmentos abajo (confunde); falta que el chat conozca título, autor, año y link de sus fuentes; se quiere UI propia y preguntas sugeridas. Prueba el jueves, presentación a la Vicerrectoría el viernes.
+- Pregunta de Jairo ("los puntos de... con un punto de género"): son los 14 principios de la Reforma Rural Integral (punto 1 del Acuerdo). El chat no supo porque el Acuerdo no está en el corpus → idea de una segunda base "Marco normativo" (por validar con la coordinación).
+- `07_prototipo_dify/chatflow_v1_guia.md` + `nodos_codigo_chatflow.py`: Chatflow que numera las fuentes con sus metadatos, deja que el modelo cite [n] y arma la lista de fuentes solo con lo citado (si no cita, no hay lista). Citas automáticas de Dify apagadas. Filtros de año/tipo en modo Manual.
+- `08_ampliacion_memoria_participacion/` (correo de Natalia del 23-nov): categorías Memoria histórica/colectiva y Participación política, 2011-2021.
+  - `prompt_clasificacion.py` (mem-pol-v1-2026-11-24): misma estructura que el v1 de reforma agraria (alcance, NO ENTRA, decide el foco, ante la duda POSIBLE, evidencia literal, red de términos poco ambiguos). Se usa con una copia de `06_clasificacion_ia/clasificar_ia.py` en la misma carpeta.
+  - `armar_entrada_ampliacion.py`: el filtro Dewey NO aplica (se armó para tierras). Entra todo el repositorio 2011-2021 que es texto: **21.280** (8.837 pasan Dewey, van primero; 12.443 resto). Las bases de Natalia van aparte (`entrada_bases.csv`, 1.027 que no están en el repositorio; 606 sin enlace, 226 de tipo no académico, 10 posibles duplicados) y son opcionales.
+  - `armar_excel_ampliacion.py`: Excel de revisión con columna Fuente.
+- `09_ui_propia/PROMPT_CLAUDE_CODE.md`: especificación de la UI propia sobre la API de Dify (plantilla MIT `webapp-conversation`), para tenerla antes de la reunión del jueves.
