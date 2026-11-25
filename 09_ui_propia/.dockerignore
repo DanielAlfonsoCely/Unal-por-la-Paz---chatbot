@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.env.local
+.env*.local
+Dockerfile
+docker-compose.yml
+README.md
+PROMPT_CLAUDE_CODE.md

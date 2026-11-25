@@ -1,0 +1,17 @@
+# Contenedor aparte de Dify (no toca la carpeta ni los contenedores de Dify).
+# Uso en el Nodo 10:  docker compose up -d --build
+services:
+  ui:
+    build: .
+    image: unal-paz-ui:latest
+    container_name: unal-paz-ui
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local            # DIFY_APP_KEY y DEMO_MODE (no se copia dentro de la imagen)
+    environment:
+      # Dentro del contenedor, Dify (puerto 80 del Nodo 10) se alcanza así:
+      DIFY_API_URL: http://host.docker.internal/v1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
