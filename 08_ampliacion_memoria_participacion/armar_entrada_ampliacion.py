@@ -78,11 +78,13 @@ def handle(v):
     return m.group(1) if m else None
 
 
-def armar_resumen(principal, extras):
-    """Resumen = texto principal + (si es suficiente) líneas extra como Temas. Si el principal es corto,
-    se deja solo el principal para que clasificar_ia.py lo mande a REVISAR igual que en la corrida agraria."""
+def armar_resumen(principal, extras, siempre=False):
+    """Resumen = texto principal + líneas extra (temas, eje, etc.).
+    Repositorio (siempre=False): si el principal es corto se deja solo, para que clasificar_ia.py lo mande a REVISAR
+    igual que en la corrida agraria. Bases de Natalia (siempre=True): se usa todo lo que haya, aunque no haya resumen,
+    porque ahí se clasifica con lo disponible (título, temas, eje temático...)."""
     principal = limpio(principal)
-    if len(principal) < 100:
+    if len(principal) < 100 and not siempre:
         return principal
     extra = [f"{k}: {limpio(v)}" for k, v in extras if limpio(v)]
     return principal + ("\n\n" + "\n".join(extra) if extra else "")
@@ -220,7 +222,7 @@ def leer_legado(ruta):
                      "Resumen": armar_resumen(r.get("Síntesis del documento"),
                                               [("Tema principal", r.get("Tema principal")),
                                                ("Temas secundarios", r.get("Temas secundarios")),
-                                               ("Enfoque", r.get("Enfoque"))])})
+                                               ("Enfoque", r.get("Enfoque"))], siempre=True)})
     return regs
 
 
@@ -238,7 +240,7 @@ def leer_base_final(ruta):
                      "Año": anio(r.get("FECHA")), "Tipo": limpio(r.get("TIPO DE APORTE")),
                      "Link": ls[0] if ls else "",
                      "Resumen": armar_resumen(resumen, [("Eje temático", r.get("EJE TEMÁTICO")),
-                                                        ("Categoría", r.get("CATEGORÍA"))])})
+                                                        ("Categoría", r.get("CATEGORÍA"))], siempre=True)})
     return regs
 
 
@@ -268,9 +270,7 @@ if filas_bases:
     for o in ["Posible duplicado", "Sin enlace", "Tipo no académico"]:
         log.append(f"  con '{o}': {b['Observaciones'].str.contains(o).sum()}")
     log.append(f"  sin ninguna observación: {(b['Observaciones'] == '').sum()}")
-    ce = b[b["Link"].str.startswith("http")]
-    ce[COLS + ["Observaciones"]].to_csv("entrada_bases_con_enlace.csv", index=False, encoding="utf-8-sig")
-    log.append(f"entrada_bases_con_enlace.csv: {len(ce)} (solo las que tienen enlace a un documento)")
+    log.append(f"  con enlace: {b['Link'].str.startswith('http').sum()} (las demás se clasifican igual, con título y temas)")
 texto = "\n".join(log)
 print(texto)
 open("resumen_entrada.txt", "w", encoding="utf-8").write(texto + "\n")
