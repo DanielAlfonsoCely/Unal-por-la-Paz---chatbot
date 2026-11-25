@@ -105,8 +105,7 @@ for row in wr.iter_rows():
 # ---- Cómo leer ----
 wc.column_dimensions["A"].width = 30; wc.column_dimensions["B"].width = 100
 texto = [
-    ("Qué es", "Documentos de 2011-2021 del repositorio UNAL y de las bases de Natalia (Base William Mancera, Base Legado "
-               "de octubre y Base final 2010-2021), clasificados por la IA con las palabras clave del correo del 23-nov."),
+    ("Qué es", "Documentos de 2011-2021 del repositorio UNAL y de las bases de Natalia (Red Paz, Legado 1 y Legado 2), clasificados por la IA con las palabras clave del correo del 23-nov."),
     ("Decisión IA", "INCLUIR = el tema es central. POSIBLE = hay relación pero no es clara o es secundaria (ante la duda la "
                     "IA elige POSIBLE). EXCLUIR = sin relación. REVISAR = no tiene resumen suficiente; la IA no lo leyó."),
     ("Categoría(s)", "En cuál de las dos categorías cae según la IA. Puede ser una, las dos o ninguna."),

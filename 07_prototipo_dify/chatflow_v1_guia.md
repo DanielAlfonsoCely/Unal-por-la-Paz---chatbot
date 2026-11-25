@@ -11,7 +11,21 @@ Objetivo: arreglar lo que salió en la reunión del 24-nov **sin construir nada 
 | Filtros (año, tipo…) en vez del filtrado automático que falló | Campos opcionales en el nodo Inicio → filtro de metadatos en modo **Manual** en la recuperación |
 | Usar la versión analítica | El prompt del LLM parte del prompt analítico |
 
-## Nodos (en orden)
+## Forma rápida: importar el DSL (probar primero esto)
+
+1. `python generar_dsl_chatflow.py` → genera `chatflow_paz_v1.yml` (el código de los nodos sale de `nodos_codigo_chatflow.py`).
+2. Dify → Studio → Crear app → **Importar DSL** → subir `chatflow_paz_v1.yml`.
+3. En el lienzo: nodo **Buscar en documentos** → elegir la base "Prototipo paz INCLUIR 2011-2021" (el id de la base no viaja
+   en el archivo). Revisar que el nodo **Redactar respuesta** tenga gemma4:31b-it-qat.
+4. Probar en la vista previa → Publicar. Si la importación falla, copiar el error y se corrige el generador.
+5. Cuando quede bien: **Exportar DSL** desde Dify y guardar ese archivo en el repo (es la versión "oficial").
+
+v1 no trae filtros de año/tipo (si un filtro manual queda vacío puede dejar la búsqueda sin resultados; se agregan en v2
+después de probarlo). Las preguntas de seguimiento no las genera Dify: las escribe el mismo modelo al final de cada
+respuesta ("SUGERENCIAS: …") pensando en lo que los documentos recuperados sí responden; el Code 2 las saca del texto y
+las deja en un comentario `<!--sugerencias:[...]-->` que la UI propia convierte en botones.
+
+## Nodos (en orden) — por si toca armarlo a mano
 
 1. **Inicio** — variables opcionales (Dify las muestra como formulario al empezar el chat):
    - `anio_desde` (número, opcional), `anio_hasta` (número, opcional)

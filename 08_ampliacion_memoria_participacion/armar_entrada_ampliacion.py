@@ -242,13 +242,13 @@ def leer_base_final(ruta):
     return regs
 
 
-# Primero William (la más nueva y completa), luego el Legado de octubre (se repite mucho con William) y la Base final
+# Nombres que pidió Natalia: Legado 2 = base de William Mancera (9-nov), Legado 1 = Legado de octubre (377), Red Paz = "Base final 2010-2021"
 if args.william:
-    agregar_base("Base William Mancera", "WM", leer_legado(args.william))
+    agregar_base("Legado 2", "L2", leer_legado(args.william))
 if args.legado:
-    agregar_base("Base Legado (oct)", "LEG", leer_legado(args.legado))
+    agregar_base("Legado 1", "L1", leer_legado(args.legado))
 if args.base_final:
-    agregar_base("Base final 2010-2021", "BF", leer_base_final(args.base_final))
+    agregar_base("Red Paz", "RP", leer_base_final(args.base_final))
 
 GRUPOS = {1: "1 Repositorio (sociales, humanas, artes)", 2: "2 Repositorio (otras facultades, pasa Dewey)",
           3: "3 Repositorio (resto)", 4: "4 Bases de Natalia"}

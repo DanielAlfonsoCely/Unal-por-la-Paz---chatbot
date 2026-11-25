@@ -1,0 +1,388 @@
+app:
+  name: Chatbot Paz UNAL - Chatflow v1
+  mode: advanced-chat
+  icon: 🕊️
+  icon_type: emoji
+  icon_background: '#E4FBCC'
+  description: Consulta documentos del repositorio UNAL con fuentes citadas
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: Hola. Soy el asistente de investigación de UNAL por la Paz. Respondo con base en tesis, artículos y libros del repositorio de la Universidad Nacional (2011-2021) sobre tierra, conflicto y construcción de paz, y cito mis fuentes.
+    suggested_questions:
+    - ¿Qué es la Reforma Rural Integral y qué dicen las investigaciones sobre su implementación?
+    - ¿Cómo se relaciona la concentración de la tierra con el conflicto armado en Colombia?
+    - ¿Qué son las Zonas de Reserva Campesina?
+    - ¿Qué dificultades ha tenido la restitución de tierras?
+    suggested_questions_after_answer:
+      enabled: false
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    nodes:
+    - id: inicio
+      type: custom
+      position:
+        x: 0
+        y: 250
+      positionAbsolute:
+        x: 0
+        y: 250
+      sourcePosition: right
+      targetPosition: left
+      width: 244
+      height: 90
+      data:
+        desc: ''
+        selected: false
+        type: start
+        title: Inicio
+        variables: []
+    - id: recuperar
+      type: custom
+      position:
+        x: 320
+        y: 250
+      positionAbsolute:
+        x: 320
+        y: 250
+      sourcePosition: right
+      targetPosition: left
+      width: 244
+      height: 90
+      data:
+        desc: ''
+        selected: false
+        type: knowledge-retrieval
+        title: Buscar en documentos
+        dataset_ids: []
+        query_variable_selector:
+        - sys
+        - query
+        retrieval_mode: multiple
+        metadata_filtering_mode: disabled
+        multiple_retrieval_config:
+          top_k: 6
+          score_threshold: null
+          reranking_enable: false
+          reranking_mode: weighted_score
+          reranking_model:
+            provider: ''
+            model: ''
+          weights:
+            weight_type: customized
+            vector_setting:
+              vector_weight: 0.7
+              embedding_provider_name: langgenius/ollama/ollama
+              embedding_model_name: bge-m3
+            keyword_setting:
+              keyword_weight: 0.3
+    - id: code_contexto
+      type: custom
+      position:
+        x: 640
+        y: 250
+      positionAbsolute:
+        x: 640
+        y: 250
+      sourcePosition: right
+      targetPosition: left
+      width: 244
+      height: 90
+      data:
+        desc: ''
+        selected: false
+        type: code
+        title: Armar contexto con fuentes
+        code_language: python3
+        code: |
+          def main(result: list) -> dict:
+              import json
+
+              def meta_de(item):
+                  m = item.get("metadata") or {}
+                  dm = m.get("doc_metadata") or {}          # metadatos propios (los 13 campos que subió subir_a_dify.py)
+                  junto = dict(m)
+                  junto.update(dm)
+                  return junto
+
+              docs = {}      # agrupa fragmentos por documento: un número [n] por documento, no por fragmento
+              orden = []
+              for item in result or []:
+                  m = meta_de(item)
+                  clave = m.get("document_id") or m.get("id_repositorio") or m.get("document_name") or item.get("title")
+                  if clave not in docs:
+                      docs[clave] = {
+                          "titulo": m.get("titulo") or item.get("title") or m.get("document_name") or "Documento sin título",
+                          "autor": m.get("autor") or "",
+                          "anio": m.get("anio") or "",
+                          "tipo": m.get("tipo") or "",
+                          "link": m.get("link_repositorio") or "",
+                          "score": m.get("score") or 0,
+                          "fragmentos": [],
+                      }
+                      orden.append(clave)
+                  docs[clave]["fragmentos"].append((item.get("content") or "").strip())
+
+              bloques, fuentes = [], []
+              for n, clave in enumerate(orden, start=1):
+                  d = docs[clave]
+                  anio = str(d["anio"]).split(".")[0] if d["anio"] != "" else ""
+                  cabecera = f"[{n}] {d['titulo']}"
+                  detalles = ", ".join(x for x in [d["autor"], anio, d["tipo"]] if x)
+                  if detalles:
+                      cabecera += f" — {detalles}"
+                  texto = "\n...\n".join(f for f in d["fragmentos"] if f)
+                  bloques.append(f"{cabecera}\n{texto}")
+                  fuentes.append({"n": n, "titulo": d["titulo"], "autor": d["autor"], "anio": anio, "link": d["link"]})
+
+              contexto = "\n\n========\n\n".join(bloques) if bloques else "(No se recuperó ningún documento.)"
+              return {"contexto": contexto, "fuentes": json.dumps(fuentes, ensure_ascii=False), "n_fuentes": len(fuentes)}
+        variables:
+        - variable: result
+          value_selector:
+          - recuperar
+          - result
+          value_type: array[object]
+        outputs:
+          contexto:
+            type: string
+            children: null
+          fuentes:
+            type: string
+            children: null
+          n_fuentes:
+            type: number
+            children: null
+    - id: llm
+      type: custom
+      position:
+        x: 960
+        y: 250
+      positionAbsolute:
+        x: 960
+        y: 250
+      sourcePosition: right
+      targetPosition: left
+      width: 244
+      height: 90
+      data:
+        desc: ''
+        selected: false
+        type: llm
+        title: Redactar respuesta
+        model:
+          provider: langgenius/ollama/ollama
+          name: gemma4:31b-it-qat
+          mode: chat
+          completion_params:
+            temperature: 0.3
+        variables: []
+        context:
+          enabled: false
+          variable_selector: []
+        vision:
+          enabled: false
+        prompt_template:
+        - id: sistema-paz-v3
+          role: system
+          text: |-
+            Eres el asistente de investigación del proyecto "UNAL por la Paz" de la Universidad Nacional de Colombia.
+            Ayudas a investigadores, estudiantes y equipos de trabajo a consultar la producción académica de la Universidad sobre la cuestión agraria, la tierra y la construcción de paz en Colombia.
+
+            Responde SOLO con la información de los DOCUMENTOS de abajo. Cada documento tiene un número entre corchetes, su título, autor y año, y uno o varios fragmentos.
+
+            Reglas:
+            1. Cada afirmación que saques de un documento lleva su número al final, así: [2] o [1, 3]. Usa solo los números que aparecen abajo. No inventes títulos, autores, capítulos ni páginas.
+            2. Si los documentos no responden la pregunta, dilo claramente en una o dos frases, SIN números entre corchetes, y sugiere cómo reformular la pregunta. No completes con conocimiento propio.
+            3. Si los documentos responden solo una parte, responde esa parte y aclara qué falta.
+            4. Estilo analítico: organiza la respuesta (contexto, hallazgos principales, diferencias entre autores si las hay). Si dos documentos se contradicen, muéstralo.
+            5. Cuando sea útil, nombra el documento en el texto ("En la tesis de X (2018) [3]...").
+            6. No escribas una lista de fuentes al final: el sistema la agrega sola.
+            7. Responde en el idioma de la pregunta.
+            8. Al final, en una línea aparte, escribe exactamente "SUGERENCIAS:" seguido de 3 preguntas cortas separadas por " | ". Deben ser preguntas que los DOCUMENTOS de abajo sí permiten responder (por ejemplo "Explícame...", "¿Por qué...?", "¿Qué diferencias hay entre...?"). Si no encontraste información, sugiere 3 formas más concretas de preguntar sobre el tema del proyecto.
+
+            DOCUMENTOS:
+            {{#code_contexto.contexto#}}
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            user: ''
+            assistant: ''
+          window:
+            enabled: true
+            size: 6
+    - id: code_fuentes
+      type: custom
+      position:
+        x: 1280
+        y: 250
+      positionAbsolute:
+        x: 1280
+        y: 250
+      sourcePosition: right
+      targetPosition: left
+      width: 244
+      height: 90
+      data:
+        desc: ''
+        selected: false
+        type: code
+        title: Agregar fuentes citadas
+        code_language: python3
+        code: |
+          def main(respuesta: str, fuentes: str) -> dict:
+              import json, re
+
+              texto = respuesta or ""
+              texto = re.sub(r"<think>.*?</think>", "", texto, flags=re.S).strip()
+
+              sugerencias = []
+              m = re.search(r"\n?\**SUGERENCIAS\**\s*:\s*(.+)\s*$", texto, flags=re.S | re.I)
+              if m:
+                  sugerencias = [x.strip(" -•*\n\"") for x in re.split(r"\||\n", m.group(1)) if x.strip(" -•*\n\"")][:3]
+                  texto = texto[:m.start()].rstrip()
+
+              try:
+                  lista = json.loads(fuentes or "[]")
+              except Exception:
+                  lista = []
+              por_n = {f["n"]: f for f in lista}
+
+              citados = []
+              for c in re.finditer(r"\[(\d+(?:\s*,\s*\d+)*)\]", texto):
+                  for x in c.group(1).split(","):
+                      k = int(x.strip())
+                      if k in por_n and k not in citados:
+                          citados.append(k)
+
+              final = texto
+              if citados:                       # sin citas válidas → sin lista de fuentes
+                  lineas = []
+                  for k in citados:
+                      f = por_n[k]
+                      ref = f"**[{k}]** {f['titulo']}"
+                      extra = ", ".join(x for x in [f.get("autor", ""), f.get("anio", "")] if x)
+                      if extra:
+                          ref += f" ({extra})"
+                      if f.get("link"):
+                          ref += f" — [Ver en el Repositorio UNAL]({f['link']})"
+                      lineas.append(ref)
+                  final += "\n\n---\n**Fuentes**\n\n" + "\n\n".join(lineas)
+              if sugerencias:
+                  final += "\n\n<!--sugerencias:" + json.dumps(sugerencias, ensure_ascii=False) + "-->"
+              return {"final": final}
+        variables:
+        - variable: respuesta
+          value_selector:
+          - llm
+          - text
+          value_type: string
+        - variable: fuentes
+          value_selector:
+          - code_contexto
+          - fuentes
+          value_type: string
+        outputs:
+          final:
+            type: string
+            children: null
+    - id: respuesta
+      type: custom
+      position:
+        x: 1600
+        y: 250
+      positionAbsolute:
+        x: 1600
+        y: 250
+      sourcePosition: right
+      targetPosition: left
+      width: 244
+      height: 90
+      data:
+        desc: ''
+        selected: false
+        type: answer
+        title: Respuesta
+        answer: '{{#code_fuentes.final#}}'
+        variables: []
+    edges:
+    - id: inicio-source-recuperar-target
+      source: inicio
+      sourceHandle: source
+      target: recuperar
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: knowledge-retrieval
+    - id: recuperar-source-code_contexto-target
+      source: recuperar
+      sourceHandle: source
+      target: code_contexto
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: code
+    - id: code_contexto-source-llm-target
+      source: code_contexto
+      sourceHandle: source
+      target: llm
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+    - id: llm-source-code_fuentes-target
+      source: llm
+      sourceHandle: source
+      target: code_fuentes
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+    - id: code_fuentes-source-respuesta-target
+      source: code_fuentes
+      sourceHandle: source
+      target: respuesta
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: answer
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.7

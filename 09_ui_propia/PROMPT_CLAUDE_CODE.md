@@ -25,6 +25,9 @@ el jueves, así que tiene que verse muy profesional y funcionar sin fallas.
   - `POST /chat-messages/{task_id}/stop` para detener una respuesta.
 - Un identificador de usuario anónimo por navegador (uuid en localStorage, envuelto en try/catch).
 - Dockerfile + `docker-compose.yml` para correrla en el Nodo 10 (Linux) en el puerto 3000, en la misma máquina que Dify.
+  Es un contenedor aparte: NO modifiques la carpeta ni los contenedores de Dify. En el Nodo 10, Dify responde en
+  `http://localhost/v1`; desde dentro del contenedor de la UI usa `http://host.docker.internal/v1`
+  (con `extra_hosts: ["host.docker.internal:host-gateway"]` en el compose).
 
 ## Qué debe tener la pantalla
 1. **Identidad**: nombre "UNAL por la Paz — Asistente de investigación", subtítulo corto ("Consulta la producción académica
@@ -36,10 +39,14 @@ el jueves, así que tiene que verse muy profesional y funcionar sin fallas.
    su link al repositorio. Detéctalo y muéstralo como tarjetas debajo de la respuesta (título, autor/año, botón
    "Ver en el repositorio"). Si la respuesta NO trae ese bloque, no muestres ninguna sección de fuentes.
    Los números [1], [2] dentro del texto deben verse como pequeñas etiquetas que al pasar el mouse muestran el título.
-4. **Preguntas sugeridas**: al iniciar, las de `/parameters` como chips encima del campo de texto; después de cada
-   respuesta, las de `/messages/{id}/suggested`, también como chips encima del campo de texto. Clic = se envía.
-5. **Filtros** (panel lateral plegable o fila de controles arriba del chat): campos que vienen en `user_input_form`
-   (por ahora: año desde, año hasta, tipo de documento). Se mandan en `inputs`. Si el usuario cambia un filtro,
+4. **Preguntas sugeridas**: al iniciar, las de `/parameters` (`suggested_questions`) como chips encima del campo de
+   texto. Después de cada respuesta, el Chatflow agrega al final un comentario HTML
+   `<!--sugerencias:["pregunta 1","pregunta 2","pregunta 3"]-->` (JSON). Quítalo del texto mostrado y pinta esas
+   preguntas como chips encima del campo de texto. Clic = se envía. (No uses `/messages/{id}/suggested`: está
+   apagado a propósito, porque esas preguntas no salen de los documentos.)
+5. **Filtros** (panel lateral plegable o fila de controles arriba del chat): los campos que vengan en
+   `user_input_form` (la versión 1 del Chatflow todavía no trae ninguno; luego vendrán año desde, año hasta y tipo de
+   documento). Si no viene ninguno, no muestres el panel. Se mandan en `inputs`. Si el usuario cambia un filtro,
    avisa que aplica desde la siguiente pregunta. Todos opcionales.
 6. **Historial** de conversaciones en una barra lateral (nueva conversación, abrir, borrar).
 7. **Aviso** discreto en el pie: "Prototipo en pruebas. Las respuestas se basan solo en documentos del repositorio de la

@@ -66,13 +66,21 @@ def main(result: list) -> dict:
 # CODE 2 — anexar_fuentes
 # Entradas: respuesta (string) ← texto del LLM;  fuentes (string) ← salida "fuentes" del Code 1
 # Salida:   final (string)  → va al nodo Respuesta
+# El LLM termina con una línea "SUGERENCIAS: p1 | p2 | p3" (preguntas que los documentos SÍ responden).
+# Se quita del texto y se agrega al final como comentario HTML <!--sugerencias:[...]-->:
+# Markdown no lo muestra y la UI propia lo lee para pintar los botones de preguntas sugeridas.
 # =====================================================================
 def main(respuesta: str, fuentes: str) -> dict:
     import json, re
 
     texto = respuesta or ""
-    # Si el modelo dejó un bloque de pensamiento en el texto, se quita
     texto = re.sub(r"<think>.*?</think>", "", texto, flags=re.S).strip()
+
+    sugerencias = []
+    m = re.search(r"\n?\**SUGERENCIAS\**\s*:\s*(.+)\s*$", texto, flags=re.S | re.I)
+    if m:
+        sugerencias = [x.strip(" -•*\n\"") for x in re.split(r"\||\n", m.group(1)) if x.strip(" -•*\n\"")][:3]
+        texto = texto[:m.start()].rstrip()
 
     try:
         lista = json.loads(fuentes or "[]")
@@ -81,25 +89,25 @@ def main(respuesta: str, fuentes: str) -> dict:
     por_n = {f["n"]: f for f in lista}
 
     citados = []
-    for m in re.finditer(r"\[(\d+(?:\s*,\s*\d+)*)\]", texto):
-        for x in m.group(1).split(","):
+    for c in re.finditer(r"\[(\d+(?:\s*,\s*\d+)*)\]", texto):
+        for x in c.group(1).split(","):
             k = int(x.strip())
             if k in por_n and k not in citados:
                 citados.append(k)
 
-    # Sin citas válidas (o el modelo dijo que no encontró información) → sin lista de fuentes
-    if not citados:
-        return {"final": texto}
-
-    lineas = []
-    for k in citados:
-        f = por_n[k]
-        ref = f"**[{k}]** {f['titulo']}"
-        extra = ", ".join(x for x in [f.get("autor", ""), f.get("anio", "")] if x)
-        if extra:
-            ref += f" ({extra})"
-        if f.get("link"):
-            ref += f" — [Ver en el Repositorio UNAL]({f['link']})"
-        lineas.append(ref)
-
-    return {"final": texto + "\n\n---\n**Fuentes**\n\n" + "\n\n".join(lineas)}
+    final = texto
+    if citados:                       # sin citas válidas → sin lista de fuentes
+        lineas = []
+        for k in citados:
+            f = por_n[k]
+            ref = f"**[{k}]** {f['titulo']}"
+            extra = ", ".join(x for x in [f.get("autor", ""), f.get("anio", "")] if x)
+            if extra:
+                ref += f" ({extra})"
+            if f.get("link"):
+                ref += f" — [Ver en el Repositorio UNAL]({f['link']})"
+            lineas.append(ref)
+        final += "\n\n---\n**Fuentes**\n\n" + "\n\n".join(lineas)
+    if sugerencias:
+        final += "\n\n<!--sugerencias:" + json.dumps(sugerencias, ensure_ascii=False) + "-->"
+    return {"final": final}
