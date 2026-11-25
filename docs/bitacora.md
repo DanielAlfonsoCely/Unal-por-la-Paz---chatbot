@@ -108,3 +108,11 @@ Registro de lo que se ha hecho, en orden. Cada vez que se haga un commit con alg
 - Dify del Nodo 10: el editor se quedaba en "Sincronizando datos" porque la colaboración en tiempo real usa un websocket a `NEXT_PUBLIC_SOCKET_URL` (por defecto `ws://localhost`, que desde la laptop apunta a la laptop). Se puso `NEXT_PUBLIC_SOCKET_URL=ws://100.103.228.104` y luego `ENABLE_COLLABORATION_MODE=false` en `~/dify/docker/.env` (se trabaja solo). Lección: tras recrear contenedores con `docker compose up -d` hay que hacer `docker compose restart nginx` (si no, 502) y volver a iniciar sesión en Dify.
 - Estado de la clasificación de la ampliación (25-nov 10:10): 88,6 % (17.839/20.135), INCLUIR 548 · POSIBLE 890 · EXCLUIR 16.060 · REVISAR 341; termina hacia las 12:10.
 - Siguiente: ngrok al puerto 3000 del Nodo 10 con la UI en Docker (la política de ngrok de la carpeta 07 bloquea `/` y no sirve para la UI), Excel de la ampliación, base "Marco normativo".
+
+## 25 nov 2026 (mediodía) — UI en Docker, ngrok al 3000 y siguientes pasos
+
+- La UI propia (09_ui_propia) quedó corriendo en Docker en el Nodo 10 (puerto 3000, contenedor `unal-paz-ui`, `host.docker.internal` hacia Dify). ngrok pasó al puerto 3000 con el mismo dominio fijo y sin policy (la anterior bloqueaba "/"). Probado desde el celular con datos móviles: funciona.
+- Dify: colaboración desactivada (`ENABLE_COLLABORATION_MODE=false`). Tras recrear api/web: `docker compose restart nginx` y volver a iniciar sesión.
+- Clasificación de la ampliación (Memoria histórica + Participación política, 2011-2021): 18.729/20.135 a las 10:57; INCLUIR 548 · POSIBLE 896 · EXCLUIR 16.940 · REVISAR 345. Termina ~12:10.
+- Marco normativo: segunda base de conocimiento (normas, tipo "Norma") con segundo nodo de recuperación en el chatflow; lista propuesta por validar con la coordinación.
+- Pendiente: Excel de la ampliación, bases de Natalia, paralelo 1 / ctx 16k para la demo, `.stignore` con node_modules y .next, logo oficial (Unimedios), título final.
